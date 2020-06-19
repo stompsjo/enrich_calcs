@@ -7,6 +7,7 @@ R = 8.314 # J/K*mol
 dM = 0.003 #kg/mol
 M = 0.352 # kg/mol of UF6
 M_atm = 0.238 # atomic mass of natural uranium
+M_238 = 0.238;      # kg/mol
 
 # Centrifuge assumptions
 x = 1000 # pressure ratio (Glaser)
@@ -25,7 +26,10 @@ def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
     
 
     # Intermediate calculations
-    r_12 = np.sqrt(1.0 - (2.0*R*T*(np.log(x))/M/(v_a**2))) # fraction
+    if v_a > 380:
+        r_12 = np.sqrt(1.0 - (2.0*R*T*(np.log(x))/M/(v_a**2))) # fraction
+    else:
+        r_12 = 0.534
     r_1 = r_2*r_12  # fraction
 
     # Glaser eqn 12
@@ -33,19 +37,21 @@ def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
     Z_p = Z*(1.0 - cut)*(1.0 + L_F)/(1.0 - cut + L_F)
 
     if (verbose == True):
-        print "L_F= ", L_F
-        print "Z_p=  ", Z_p
-        print "r_1", r_1
-        print "r_12", r_12
+        print("L_F= ", L_F)
+        print("Z_p=  ", Z_p)
+        print("r_1", r_1)
+        print("r_12", r_12)
 
+    ratio_UF6_U = M_238 / M; # converting feed from UF6 to U
+    feed_U = F_m * ratio_UF6_U
     # Glaser eqn 3
     # To convert from gas to atom fraction, multiple by M_atm/M 
     C1 = (2.0*np.pi*(D_rho*M_atm/M)/(np.log(r_2/r_1)))
 #    C1 = (2.0*np.pi*(D_rho)/(np.log(r_2/r_1)))
-    A_p = C1 *(1.0/F_m) * (cut/((1.0 + L_F)*(1.0 - cut + L_F)))
-    A_w = C1 * (1.0/F_m) * ((1.0 - cut)/(L_F*(1.0 - cut + L_F)))
+    A_p = C1 *(1.0/feed_U) * (cut/((1.0 + L_F)*(1.0 - cut + L_F)))
+    A_w = C1 * (1.0/feed_U) * ((1.0 - cut)/(L_F*(1.0 - cut + L_F)))
 
-    C_flow = 0.5*F_m*cut*(1.0 - cut)
+    C_flow = 0.5*feed_U*cut*(1.0 - cut)
     C_therm = calc_C_therm(v_a, T)
 
     C_scale = ((r_2/a)**4)*((1-(r_12**2))**2)
@@ -58,7 +64,7 @@ def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
     # Efficiency applied to optimal del_U in Ratz p73 (pdf p21)
     major_term = 0.5*cut*(1.0 - cut)*(C_therm**2)*C_scale*(
                 (bracket1*(1 - exp1)) + (bracket2*(1 - exp2)))**2 # kg/s    
-    del_U = F_m*major_term*eff #kg/s
+    del_U = feed_U*major_term*eff #kg/s
     
     per_sec2yr = 60*60*24*365.25 # s/m * m/hr * hr/d * d/y
 
@@ -81,11 +87,12 @@ def calc_V(N_in):
     return V_out
 
 # for a machine
-def alpha_by_swu(del_U, F_m, cut):
+def alpha_by_swu(del_U, F_m, cut): 
     # Avery p.18
     # del_U in moles/sec
-    del_U_moles = del_U/M
-    alpha = 1 + np.sqrt((2*del_U_moles*(1-cut)/(cut*F_m)))
+    del_U_moles = del_U
+    feed_U = F_m * (M_238 / M)
+    alpha = 1 + np.sqrt((2*del_U_moles*(1-cut)/(cut*feed_U)))
     return alpha
 
 # for a machine
@@ -280,7 +287,7 @@ def design_cascade(cut, alpha, del_U, Nfc, feed_flows,
         print_len = 2
         
     if (verbose == True):
-        print "Stage   #Mach\t Feed    Product  Waste\t F_assay \tP_assay W_assay"
+        print("Stage   #Mach\t Feed    Product  Waste\t F_assay \tP_assay W_assay")
 
     n_centrifuges = 0
     Nfs = Nfc
@@ -305,7 +312,7 @@ def design_cascade(cut, alpha, del_U, Nfc, feed_flows,
             Nw_1 = Nws
 
         if (verbose == True):
-             print stage_idx, "\t", n_mach_enr,"\t", round(Fs*fix,print_len), "  ",round(Ps*fix, print_len), "  ",round(Ws*fix, print_len),"  ", round(Nfs, assay_len), "\t",round(Nps, assay_len),"\t", round(Nws, assay_len)
+             print(stage_idx, "\t", n_mach_enr,"\t", round(Fs*fix,print_len), "  ",round(Ps*fix, print_len), "  ",round(Ws*fix, print_len),"  ", round(Nfs, assay_len), "\t",round(Nps, assay_len),"\t", round(Nws, assay_len))
 
         Nfs = Nps
 
