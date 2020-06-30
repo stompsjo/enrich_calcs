@@ -42,7 +42,7 @@ def calc_del_U(v_a, Z, d, F_m, T, cut, eff=1.0, verbose=False):
         print("r_1", r_1)
         print("r_12", r_12)
 
-    ratio_UF6_U = M_238 / M; # converting feed from UF6 to U
+    ratio_UF6_U = M_238 / M # converting feed from UF6 to U
     feed_U = F_m * ratio_UF6_U
     # Glaser eqn 3
     # To convert from gas to atom fraction, multiple by M_atm/M 
@@ -158,11 +158,12 @@ def machines_per_enr_stage(alpha, del_U, Fs):
     # flows do not have required units so long as they are consistent
     # Nfs, Nws, Nps = enrichment of stage product/waste/feed
     
+    ratio_UF6_U = M_238 / M # converting feed from UF6 to U
     epsilon = alpha - 1.0
 
     # Feed flow of a single machine (in Avery denoted with L)
     # Avery p. 62
-    F_machine = 2.0*del_U/(epsilon**2)
+    F_machine = 2.0*del_U/(epsilon**2)/ratio_UF6_U
     n_enrich = Fs/F_machine
     return n_enrich
 
